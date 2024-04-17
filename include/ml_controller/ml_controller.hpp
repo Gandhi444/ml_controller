@@ -52,12 +52,11 @@ namespace ml_controller
 {
 struct Object
 {
-  int32_t x_offset;
-  int32_t y_offset;
-  int32_t height;
-  int32_t width;
-  float score;
-  int32_t type;
+  float steering_tire_angle;
+  float steering_tire_rotation_rate;
+  float acceleration;
+  float speed;
+  float jerk;
 };
 using ObjectArray = std::vector<Object>;
 using ObjectArrays = std::vector<ObjectArray>;
@@ -72,7 +71,7 @@ public:
     const bool use_gpu_preprocess = false, std::string calibration_image_list_file = std::string(),
     const double norm_factor = 1.0, [[maybe_unused]] const std::string & cache_dir = "",
     const tensorrt_common::BatchConfig & batch_config = {1, 1, 1},
-    const size_t max_workspace_size = (1 << 30),int inputLength=20,int outputLength=10);
+    const size_t max_workspace_size = (1 << 30),int inputPoints=2);
   ~MlController() = default;
 
   rclcpp::Logger logger = rclcpp::get_logger("ml_controller");
@@ -103,6 +102,7 @@ private:
   int output_Length_;
   int batch_size_;
   double norm_factor_;
+  int inputPoints_;
   CudaUniquePtr<float[]> input_d_;
   CudaUniquePtr<float[]> output_d_;
   StreamUniquePtr stream_{makeCudaStream()};

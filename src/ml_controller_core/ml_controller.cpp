@@ -50,7 +50,7 @@ MlController::MlController(
     const bool use_gpu_preprocess = false, std::string calibration_image_list_file = std::string(),
     const double norm_factor = 1.0, [[maybe_unused]] const std::string & cache_dir = "",
     const tensorrt_common::BatchConfig & batch_config = {1, 1, 1},
-    const size_t max_workspace_size = (1 << 30),int inputLength,int outputLength)
+    const size_t max_workspace_size = (1 << 30),int inputPoints)
 {
   lookahead_distance_=0.0;
   closest_thr_dist_=3.0; 
@@ -62,8 +62,9 @@ MlController::MlController(
   const auto input_dims = trt_common_->getBindingDimensions(0);
 
   const auto out_scores_dims = trt_common_->getBindingDimensions(3);
-  input_Length_=inputLength;
-  output_Length_=outputLength;
+  inputPoints_=inputPoints;
+  input_Length_=inputPoints*8+7;
+  output_Length_=5;
   input_d_ = cuda_utils::make_unique<float[]>(input_Length_);
   output_d_ = cuda_utils::make_unique<float[]>(input_Length_);
 }  
@@ -93,35 +94,51 @@ std::pair<bool, double> MlController::run()
       closest_pair.second);
     return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
   }
-
-  int32_t next_wp_idx = findNextPointIdx(closest_pair.second);
-
-  if (next_wp_idx == -1) {
+  std::vector<uint32_t> point_idxs;
+  point_idxs.emplace_back(closest_pair.second);
+  for(int i=0;i<inputPoints_-1;i++)
+  {
+    int32_t next_wp_idx = findNextPointIdx(point_idxs[i]);
+    if (next_wp_idx == -1) {
     RCLCPP_WARN(logger, "lost next waypoint");
     return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
-  }
-
-  loc_next_wp_ = curr_wps_ptr_->at(next_wp_idx).position;
-
-  geometry_msgs::msg::Point next_tgt_pos;
-  // if next waypoint is first
-  if (next_wp_idx == 0) {
-    next_tgt_pos = curr_wps_ptr_->at(next_wp_idx).position;
-  } else {
-    // linear interpolation
-    std::pair<bool, geometry_msgs::msg::Point> lerp_pair = lerpNextTarget(next_wp_idx);
-
-    if (!lerp_pair.first) {
-      RCLCPP_WARN(logger, "lost target! ");
-      return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
     }
-
-    next_tgt_pos = lerp_pair.second;
+    point_idxs.emplace_back(next_wp_idx);
   }
-  loc_next_tgt_ = next_tgt_pos;
+  auto cur_pos=curr_pose_ptr_->position;
+  auto cur_orient=curr_pose_ptr_->position;
+  std::vector<float> data={(float)cur_pos.x,(float)cur_pos.y,(float)cur_pos.z,
+  (float)cur_orient.x,(float)cur_orient.y,(float)cur_orient.z,1};
+  for(auto wp_idx : point_idxs)
+  {
+    data.emplace_back(0);
+  }
 
-  double kappa = planning_utils::calcCurvature(next_tgt_pos, *curr_pose_ptr_);
+  
 
+
+
+  // loc_next_wp_ = curr_wps_ptr_->at(next_wp_idx).position;
+
+  // geometry_msgs::msg::Point next_tgt_pos;
+  // // if next waypoint is first
+  // if (next_wp_idx == 0) {
+  //   next_tgt_pos = curr_wps_ptr_->at(next_wp_idx).position;
+  // } else {
+  //   // linear interpolation
+  //   std::pair<bool, geometry_msgs::msg::Point> lerp_pair = lerpNextTarget(next_wp_idx);
+
+  //   if (!lerp_pair.first) {
+  //     RCLCPP_WARN(logger, "lost target! ");
+  //     return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
+  //   }
+
+  //   next_tgt_pos = lerp_pair.second;
+  // }
+  // loc_next_tgt_ = next_tgt_pos;
+
+  //double kappa = planning_utils::calcCurvature(next_tgt_pos, *curr_pose_ptr_);
+  double kappa=0;
   return std::make_pair(true, kappa);
 }
 

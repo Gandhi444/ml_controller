@@ -6,6 +6,7 @@ autoware_package()
 
 find_package(Eigen3 REQUIRED)
 find_package(tensorrt_common)
+find_package(cuda_utils)
 if(NOT ${tensorrt_common_FOUND})
   message(WARNING "The tensorrt_common package is not found. Please check its dependencies.")
   return()
