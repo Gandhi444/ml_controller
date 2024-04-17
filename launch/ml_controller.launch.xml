@@ -1,0 +1,15 @@
+<launch>
+  <arg name="ml_controller_param_path" default="$(find-pkg-share ml_controller)/config/ml_controller.param.yaml"/>
+
+  <arg name="input/reference_trajectory" default="/planning/scenario_planning/trajectory"/>
+  <arg name="input/current_odometry" default="/localization/kinematic_state"/>
+  <arg name="output/control_raw" default="lateral/control_cmd"/>
+
+  <node pkg="ml_controller" exec="ml_controller" name="ml_controller" output="screen">
+    <remap from="input/reference_trajectory" to="$(var input/reference_trajectory)"/>
+    <remap from="input/current_odometry" to="$(var input/current_odometry)"/>
+    <remap from="output/control_raw" to="$(var output/control_raw)"/>
+
+    <param from="$(var ml_controller_param_path)"/>
+  </node>
+</launch>
