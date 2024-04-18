@@ -114,9 +114,10 @@ private:
   Param param_;
 
   // Algorithm
+  Object Results;
   std::unique_ptr<MlController> ml_controller_;
 
-  boost::optional<double> calcTargetCurvature();
+  boost::optional<bool> calcTargetCurvature();
   boost::optional<autoware_auto_planning_msgs::msg::TrajectoryPoint> calcTargetPoint() const;
 
   // Debug

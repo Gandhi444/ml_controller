@@ -45,11 +45,14 @@
 #include <cuda_utils/cuda_unique_ptr.hpp>
 #include <cuda_utils/stream_unique_ptr.hpp>
 #include <tensorrt_common/tensorrt_common.hpp>
-#include <tensorrt_yolox/preprocess.hpp>
 
 
 namespace ml_controller
 {
+using cuda_utils::CudaUniquePtr;
+using cuda_utils::CudaUniquePtrHost;
+using cuda_utils::makeCudaStream;
+using cuda_utils::StreamUniquePtr;
 struct Object
 {
   float steering_tire_angle;
@@ -90,7 +93,7 @@ public:
   geometry_msgs::msg::Point getLocationOfNextTarget() const { return loc_next_tgt_; }
 
   bool isDataReady();
-  std::pair<bool, double> run();  // calculate curvature
+  std::pair<bool, Object> run();  // calculate curvature
   void preprocess(const std::vector<float> & data);
   bool doInference(const std::vector<float> & data, Object & results);
   bool feedforward(const std::vector<float> & data, Object & results);

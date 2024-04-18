@@ -144,7 +144,8 @@ void MlControllerNode::onTimer()
   const auto target_curvature = calcTargetCurvature();
 
   if (target_curvature) {
-    publishCommand(*target_curvature);
+    //TO DO PUBLISH RESULTS WHEREVER THEY NEED TO GO
+    publishCommand(0);
     publishDebugMarker();
   } else {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "failed to solve ml_controller");
@@ -172,7 +173,7 @@ void MlControllerNode::publishDebugMarker() const
   pub_debug_marker_->publish(marker_array);
 }
 
-boost::optional<double> MlControllerNode::calcTargetCurvature()
+boost::optional<bool> MlControllerNode::calcTargetCurvature()
 {
   // Ignore invalid trajectory
   if (trajectory_->points.size() < 3) {
@@ -200,19 +201,17 @@ boost::optional<double> MlControllerNode::calcTargetCurvature()
   ml_controller_->setCurrentPose(current_pose_->pose);
   ml_controller_->setWaypoints(planning_utils::extractPoses(*trajectory_));
   ml_controller_->setLookaheadDistance(lookahead_distance);
-
+  
   // Run PurePursuit
   const auto ml_controller_result = ml_controller_->run();
   if (!ml_controller_result.first) {
     return {};
   }
 
-  const auto kappa = ml_controller_result.second;
-
   // Set debug data
   debug_data_.next_target = ml_controller_->getLocationOfNextTarget();
 
-  return kappa;
+  return ml_controller_result.first;
 }
 
 boost::optional<autoware_auto_planning_msgs::msg::TrajectoryPoint>

@@ -32,7 +32,8 @@
   <depend>trajectory_follower_base</depend>
   <depend>vehicle_info_util</depend>
   <depend>visualization_msgs</depend>
-
+  <depend>cuda_utils</depend>
+  <depend>tensorrt_common</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>autoware_lint_common</test_depend>
 

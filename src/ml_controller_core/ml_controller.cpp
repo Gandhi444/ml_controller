@@ -44,13 +44,13 @@ using cuda_utils::makeCudaStream;
 using cuda_utils::StreamUniquePtr;
 
 MlController::MlController(
-    const std::string & model_path, const std::string & precision, const int num_class = 8,
-    const float score_threshold = 0.3, const float nms_threshold = 0.7,
-    const tensorrt_common::BuildConfig build_config = tensorrt_common::BuildConfig(),
-    const bool use_gpu_preprocess = false, std::string calibration_image_list_file = std::string(),
-    const double norm_factor = 1.0, [[maybe_unused]] const std::string & cache_dir = "",
-    const tensorrt_common::BatchConfig & batch_config = {1, 1, 1},
-    const size_t max_workspace_size = (1 << 30),int inputPoints)
+    const std::string & model_path, const std::string & precision, const int num_class ,
+    const float score_threshold, const float nms_threshold ,
+    const tensorrt_common::BuildConfig build_config,
+    const bool use_gpu_preprocess, std::string calibration_image_list_file,
+    const double norm_factor, [[maybe_unused]] const std::string & cache_dir,
+    const tensorrt_common::BatchConfig & batch_config,
+    const size_t max_workspace_size ,int inputPoints)
 {
   lookahead_distance_=0.0;
   closest_thr_dist_=3.0; 
@@ -79,10 +79,11 @@ bool MlController::isDataReady()
   return true;
 }
 
-std::pair<bool, double> MlController::run()
+std::pair<bool, Object> MlController::run()
 {
+  Object Results;
   if (!isDataReady()) {
-    return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
+    return std::make_pair(false,Results);
   }
 
   auto closest_pair = planning_utils::findClosestIdxWithDistAngThr(
@@ -92,7 +93,7 @@ std::pair<bool, double> MlController::run()
     RCLCPP_WARN(
       logger, "cannot find, curr_bool: %d, closest_idx: %d", closest_pair.first,
       closest_pair.second);
-    return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
+    return std::make_pair(false,Results);
   }
   std::vector<uint32_t> point_idxs;
   point_idxs.emplace_back(closest_pair.second);
@@ -101,23 +102,27 @@ std::pair<bool, double> MlController::run()
     int32_t next_wp_idx = findNextPointIdx(point_idxs[i]);
     if (next_wp_idx == -1) {
     RCLCPP_WARN(logger, "lost next waypoint");
-    return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
+    return std::make_pair(false,Results);
     }
     point_idxs.emplace_back(next_wp_idx);
   }
   auto cur_pos=curr_pose_ptr_->position;
-  auto cur_orient=curr_pose_ptr_->position;
+  auto cur_orient=curr_pose_ptr_->orientation;
   std::vector<float> data={(float)cur_pos.x,(float)cur_pos.y,(float)cur_pos.z,
-  (float)cur_orient.x,(float)cur_orient.y,(float)cur_orient.z,1};
+  (float)cur_orient.x,(float)cur_orient.y,(float)cur_orient.z,(float)cur_orient.w};
   for(auto wp_idx : point_idxs)
   {
-    data.emplace_back(0);
+    auto next_wp=curr_wps_ptr_->at(wp_idx);
+    auto next_pos=next_wp.position;
+    auto next_ortient=next_wp.orientation;
+    data.emplace_back(next_pos.x);
+    data.emplace_back(next_pos.y);
+    data.emplace_back(next_pos.z);
+    data.emplace_back(next_ortient.x);
+    data.emplace_back(next_ortient.y);
+    data.emplace_back(next_ortient.z);
+    data.emplace_back(next_ortient.w);
   }
-
-  
-
-
-
   // loc_next_wp_ = curr_wps_ptr_->at(next_wp_idx).position;
 
   // geometry_msgs::msg::Point next_tgt_pos;
@@ -138,8 +143,12 @@ std::pair<bool, double> MlController::run()
   // loc_next_tgt_ = next_tgt_pos;
 
   //double kappa = planning_utils::calcCurvature(next_tgt_pos, *curr_pose_ptr_);
-  double kappa=0;
-  return std::make_pair(true, kappa);
+  Object Results;
+  if(!doInference(data,Results))
+  {
+     RCLCPP_WARN(logger, "Inference failed");
+  };
+  return std::make_pair(true,Results);
 }
 
 // linear interpolation of next target
@@ -276,7 +285,7 @@ bool MlController::doInference(const std::vector<float> & data, Object & results
     return false;
   }
   preprocess(data);
-  return feedforward(data, results);
+  return true;
   
 }
 
@@ -289,15 +298,14 @@ bool MlController::feedforward(const std::vector<float> & data, Object & results
 
   auto out_results = std::make_unique<float[]>(output_Length_);
   CHECK_CUDA_ERROR(cudaMemcpyAsync(
-    out_results.get(), output_d_.get(), sizeof(float) * output_d_,
+    out_results.get(), output_d_.get(), sizeof(float)*output_Length_,
     cudaMemcpyDeviceToHost, *stream_));
   cudaStreamSynchronize(*stream_);
-    // results.x_offset = std::clamp(0, static_cast<int32_t>(x1), images[i].cols);
-    // results.y_offset = std::clamp(0, static_cast<int32_t>(y1), images[i].rows);
-    // results.width = static_cast<int32_t>(std::max(0.0F, x2 - x1));
-    // results.height = static_cast<int32_t>(std::max(0.0F, y2 - y1));
-    // results.score = out_results[i * max_detections_ + j];
-    // results.type = out_classes[i * max_detections_ + j];
+  results.steering_tire_angle=out_results[0];
+  results.steering_tire_rotation_rate=out_results[1];
+  results.acceleration=out_results[2];
+  results.speed=out_results[3];
+  results.jerk=out_results[4];
   
   return true;
 }
