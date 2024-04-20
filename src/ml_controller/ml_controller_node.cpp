@@ -141,24 +141,23 @@ void MlControllerNode::onTimer()
     return;
   }
 
-  const auto target_curvature = calcTargetCurvature();
+  const auto result = calcControlSignals();
 
-  if (target_curvature) {
+  if (result.first) {
     //TO DO PUBLISH RESULTS WHEREVER THEY NEED TO GO
-    publishCommand(0);
+    publishCommands(result.second);
     publishDebugMarker();
   } else {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "failed to solve ml_controller");
-    publishCommand({0.0});
   }
 }
 
-void MlControllerNode::publishCommand(const double target_curvature)
+void MlControllerNode::publishCommands(const Object controlSignals)
 {
   autoware_auto_control_msgs::msg::AckermannLateralCommand cmd;
   cmd.stamp = get_clock()->now();
-  cmd.steering_tire_angle =
-    planning_utils::convertCurvatureToSteeringAngle(param_.wheel_base, target_curvature);
+  cmd.steering_tire_angle =controlSignals.steering_tire_angle;
+  cmd.steering_tire_rotation_rate=controlSignals.steering_tire_rotation_rate;
   pub_ctrl_cmd_->publish(cmd);
 }
 
@@ -173,7 +172,7 @@ void MlControllerNode::publishDebugMarker() const
   pub_debug_marker_->publish(marker_array);
 }
 
-boost::optional<bool> MlControllerNode::calcTargetCurvature()
+std::pair<bool,Object> MlControllerNode::calcControlSignals()
 {
   // Ignore invalid trajectory
   if (trajectory_->points.size() < 3) {
@@ -204,14 +203,11 @@ boost::optional<bool> MlControllerNode::calcTargetCurvature()
   
   // Run PurePursuit
   const auto ml_controller_result = ml_controller_->run();
-  if (!ml_controller_result.first) {
-    return {};
-  }
-
+ 
   // Set debug data
   debug_data_.next_target = ml_controller_->getLocationOfNextTarget();
 
-  return ml_controller_result.first;
+  return ml_controller_result;
 }
 
 boost::optional<autoware_auto_planning_msgs::msg::TrajectoryPoint>

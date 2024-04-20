@@ -123,27 +123,6 @@ std::pair<bool, Object> MlController::run()
     data.emplace_back(next_ortient.z);
     data.emplace_back(next_ortient.w);
   }
-  // loc_next_wp_ = curr_wps_ptr_->at(next_wp_idx).position;
-
-  // geometry_msgs::msg::Point next_tgt_pos;
-  // // if next waypoint is first
-  // if (next_wp_idx == 0) {
-  //   next_tgt_pos = curr_wps_ptr_->at(next_wp_idx).position;
-  // } else {
-  //   // linear interpolation
-  //   std::pair<bool, geometry_msgs::msg::Point> lerp_pair = lerpNextTarget(next_wp_idx);
-
-  //   if (!lerp_pair.first) {
-  //     RCLCPP_WARN(logger, "lost target! ");
-  //     return std::make_pair(false, std::numeric_limits<double>::quiet_NaN());
-  //   }
-
-  //   next_tgt_pos = lerp_pair.second;
-  // }
-  // loc_next_tgt_ = next_tgt_pos;
-
-  //double kappa = planning_utils::calcCurvature(next_tgt_pos, *curr_pose_ptr_);
-  Object Results;
   if(!doInference(data,Results))
   {
      RCLCPP_WARN(logger, "Inference failed");

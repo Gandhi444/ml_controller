@@ -99,7 +99,7 @@ private:
   rclcpp::Publisher<autoware_auto_control_msgs::msg::AckermannLateralCommand>::SharedPtr
     pub_ctrl_cmd_;
 
-  void publishCommand(const double target_curvature);
+  void publishCommands(const Object conrolSignals);
 
   // Debug Publisher
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_debug_marker_;
@@ -114,10 +114,10 @@ private:
   Param param_;
 
   // Algorithm
-  Object Results;
+  //Object Results;
   std::unique_ptr<MlController> ml_controller_;
 
-  boost::optional<bool> calcTargetCurvature();
+  std::pair<bool,Object> calcControlSignals();
   boost::optional<autoware_auto_planning_msgs::msg::TrajectoryPoint> calcTargetPoint() const;
 
   // Debug
