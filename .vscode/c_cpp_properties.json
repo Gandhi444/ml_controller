@@ -1,0 +1,33 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "include/ml_controller/**",
+                "include/ml_controller/util/",
+                "/opt/ros/humble/include/**",
+                "/usr/include/eigen3",
+                "/usr/local/cuda/**",
+                "~/autoware/src/core/external/**",
+                "~/autoware/src/universe/autoware.universe/**",
+                "~/autoware/src/universe/autoware.universe/control/trajectory_follower_base/include/trajectory_follower_base/**",
+                "~/autoware/install/autoware_auto_planning_msgs/**",
+                "~/autoware/install/autoware_auto_control_msgs/**",
+                "~/autoware/install/autoware_vehicle_msgs/**",
+                "~/autoware/install/autoware_adapi_v1_msgs/**",
+                "~/autoware/install/autoware_auto_vehicle_msgs/**",
+                "~/autoware/install/tier4_debug_msgs/include/**",
+                "~/autoware/build/tier4_debug_msgs/rosidl_generator_cpp",
+                "~/autoware/build/autoware_auto_planning_msgs/rosidl_generator_cpp",
+                "/home/gandhi444/autoware/build/autoware_auto_control_msgs/rosidl_generator_cpp"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

@@ -44,10 +44,8 @@ using cuda_utils::makeCudaStream;
 using cuda_utils::StreamUniquePtr;
 
 MlController::MlController(
-    const std::string & model_path, const std::string & precision, const int num_class ,
-    const float score_threshold, const float nms_threshold ,
+    const std::string & model_path, const std::string & precision,
     const tensorrt_common::BuildConfig build_config,
-    const bool use_gpu_preprocess, std::string calibration_image_list_file,
     const double norm_factor, [[maybe_unused]] const std::string & cache_dir,
     const tensorrt_common::BatchConfig & batch_config,
     const size_t max_workspace_size ,int inputPoints)
@@ -59,9 +57,6 @@ MlController::MlController(
   trt_common_ = std::make_unique<tensorrt_common::TrtCommon>(
       model_path, precision, nullptr, batch_config, max_workspace_size, build_config);
   trt_common_->setup();
-  const auto input_dims = trt_common_->getBindingDimensions(0);
-
-  const auto out_scores_dims = trt_common_->getBindingDimensions(3);
   inputPoints_=inputPoints;
   input_Length_=inputPoints*8+7;
   output_Length_=5;
@@ -264,11 +259,14 @@ bool MlController::doInference(const std::vector<float> & data, Object & results
     return false;
   }
   preprocess(data);
+  if(!feedforward(results)){
+    return false;
+  }
+
   return true;
-  
 }
 
-bool MlController::feedforward(const std::vector<float> & data, Object & results)
+bool MlController::feedforward(Object & results)
 {
   std::vector<void *> buffers = {
     input_d_.get(), output_d_.get()};

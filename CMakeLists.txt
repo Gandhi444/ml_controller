@@ -32,7 +32,7 @@ ament_auto_add_library(ml_controller_core SHARED
 
 # ml_controller
 ament_auto_add_library(ml_controller_node SHARED
-  src/ml_controller/ml_controller_node.cpp
+  src/ml_controller/ml_controller_lateral_controller.cpp
   src/ml_controller/ml_controller_viz.cpp
 )
 
@@ -41,8 +41,8 @@ target_link_libraries(ml_controller_node
 )
 
 rclcpp_components_register_node(ml_controller_node
-  PLUGIN "ml_controller::MlControllerNode"
-  EXECUTABLE ml_controller_node_exe
+  PLUGIN "ml_controller::MlLateralController"
+  EXECUTABLE ml_controller_lateral_controller_exe
 )
 
 if(BUILD_TESTING)
