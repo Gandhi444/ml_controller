@@ -40,19 +40,7 @@
 #include <memory>
 #include <utility>
 
-namespace
-{
-enum TYPE {
-  VEL_LD = 0,
-  CURVATURE_LD = 1,
-  LATERAL_ERROR_LD = 2,
-  TOTAL_LD = 3,
-  CURVATURE = 4,
-  LATERAL_ERROR = 5,
-  VELOCITY = 6,
-  SIZE  // this is the number of enum elements
-};
-}  // namespace
+
 
 namespace ml_controller
 {
@@ -68,28 +56,14 @@ MlLateralController::MlLateralController(rclcpp::Node & node)
   const auto vehicle_info = vehicle_info_util::VehicleInfoUtil(node).getVehicleInfo();
   param_.wheel_base = vehicle_info.wheel_base_m;
   param_.max_steering_angle = vehicle_info.max_steer_angle_rad;
-
+  RCLCPP_WARN(logger_, std::to_string(param_.max_steering_angle).c_str());
   // Algorithm Parameters
-  // param_.ld_velocity_ratio = node.declare_parameter<double>("ld_velocity_ratio");
-  // param_.ld_lateral_error_ratio = node.declare_parameter<double>("ld_lateral_error_ratio");
-  // param_.ld_curvature_ratio = node.declare_parameter<double>("ld_curvature_ratio");
-  // param_.long_ld_lateral_error_threshold =
-  //   node.declare_parameter<double>("long_ld_lateral_error_threshold");
-  // param_.min_lookahead_distance = node.declare_parameter<double>("min_lookahead_distance");
-  // param_.max_lookahead_distance = node.declare_parameter<double>("max_lookahead_distance");
-  // param_.reverse_min_lookahead_distance =
-  //   node.declare_parameter<double>("reverse_min_lookahead_distance");
   param_.converged_steer_rad_ = node.declare_parameter<double>("converged_steer_rad");
-  // param_.prediction_ds = node.declare_parameter<double>("prediction_ds");
-  // param_.prediction_distance_length = node.declare_parameter<double>("prediction_distance_length");
-  // param_.resampling_ds = node.declare_parameter<double>("resampling_ds");
-  // param_.curvature_calculation_distance =
-  //   node.declare_parameter<double>("curvature_calculation_distance");
-  // param_.enable_path_smoothing = node.declare_parameter<bool>("enable_path_smoothing");
-  // param_.path_filter_moving_ave_num = node.declare_parameter<int64_t>("path_filter_moving_ave_num");
+  param_.resampling_ds = node.declare_parameter<double>("resampling_ds");
   param_.model_path = node.declare_parameter<std::string>("model_path", "test.onnx");
   param_.precision = node.declare_parameter<std::string>("precision", "fp32");
-  ml_controller_ = std::make_unique<MlController>(param_.model_path, param_.precision);
+  param_.trajectory_input_points_ = node.declare_parameter<int32_t>("trajectory_input_points_", 10);
+  ml_controller_ = std::make_unique<MlController>(param_.model_path, param_.precision,param_.trajectory_input_points_,param_.max_steering_angle);
   // Debug Publishers
   pub_debug_marker_ =
     node.create_publisher<visualization_msgs::msg::MarkerArray>("~/debug/markers", 0);
@@ -99,34 +73,33 @@ MlLateralController::MlLateralController(rclcpp::Node & node)
   // Publish predicted trajectory
   pub_predicted_trajectory_ = node.create_publisher<autoware_auto_planning_msgs::msg::Trajectory>(
     "~/output/predicted_trajectory", 1);
+  RCLCPP_ERROR(logger_, "Ml Controller here");
+
 }
-
-
-TrajectoryPoint MlLateralController::calcNextPose(
-  const double ds, TrajectoryPoint & point, AckermannLateralCommand cmd) const
-{
-  geometry_msgs::msg::Transform transform;
-  transform.translation = tier4_autoware_utils::createTranslation(ds, 0.0, 0.0);
-  transform.rotation =
-    planning_utils::getQuaternionFromYaw(((tan(cmd.steering_tire_angle) * ds) / param_.wheel_base));
-  TrajectoryPoint output_p;
-
-  tf2::Transform tf_pose;
-  tf2::Transform tf_offset;
-  tf2::fromMsg(transform, tf_offset);
-  tf2::fromMsg(point.pose, tf_pose);
-  tf2::toMsg(tf_pose * tf_offset, output_p.pose);
-  return output_p;
-}
-
-
-
 
 
 bool MlLateralController::isReady([[maybe_unused]] const InputData & input_data)
 {
   return true;
 }
+
+void MlLateralController::setResampledTrajectory()
+{
+  // Interpolate with constant interval distance.
+  std::vector<double> out_arclength;
+  const auto input_tp_array = motion_utils::convertToTrajectoryPointArray(trajectory_);
+  const auto traj_length = motion_utils::calcArcLength(input_tp_array);
+  for (double s = 0; s < traj_length; s += param_.resampling_ds) {
+    out_arclength.push_back(s);
+  }
+  trajectory_resampled_ =
+    std::make_shared<autoware_auto_planning_msgs::msg::Trajectory>(motion_utils::resampleTrajectory(
+      motion_utils::convertToTrajectory(input_tp_array), out_arclength));
+  trajectory_resampled_->points.back() = trajectory_.points.back();
+  trajectory_resampled_->header = trajectory_.header;
+  output_tp_array_ = motion_utils::convertToTrajectoryPointArray(*trajectory_resampled_);
+}
+
 
 LateralOutput MlLateralController::run(const InputData & input_data)
 {
@@ -144,18 +117,10 @@ LateralOutput MlLateralController::run(const InputData & input_data)
   AckermannLateralCommand cmd_msg;
   cmd_msg.stamp=clock_->now();
   cmd_msg.steering_tire_angle=ml_controller_result.second.steering_tire_angle;
-  cmd_msg.steering_tire_rotation_rate=ml_controller_result.second.steering_tire_rotation_rate;
+  cmd_msg.steering_tire_rotation_rate=0;//ml_controller_result.second.steering_tire_rotation_rate;
   LateralOutput output;
   output.control_cmd = cmd_msg;
   output.sync_data.is_steer_converged = calcIsSteerConverged(cmd_msg);
-
-  // calculate predicted trajectory with iterative calculation
-  const auto predicted_trajectory = generatePredictedTrajectory();
-  if (!predicted_trajectory) {
-    RCLCPP_ERROR(logger_, "Failed to generate predicted trajectory.");
-  } else {
-    pub_predicted_trajectory_->publish(*predicted_trajectory);
-  }
 
   return output;
 }
@@ -167,27 +132,5 @@ bool MlLateralController::calcIsSteerConverged(const AckermannLateralCommand & c
 }
 
 
-AckermannLateralCommand MlLateralController::generateCtrlCmdMsg(
-  const double target_curvature)
-{
-  const double tmp_steering =
-    planning_utils::convertCurvatureToSteeringAngle(param_.wheel_base, target_curvature);
-  AckermannLateralCommand cmd;
-  cmd.stamp = clock_->now();
-  cmd.steering_tire_angle = static_cast<float>(
-    std::min(std::max(tmp_steering, -param_.max_steering_angle), param_.max_steering_angle));
-
-  // pub_ctrl_cmd_->publish(cmd);
-  return cmd;
-}
-
-void MlLateralController::publishDebugMarker() const
-{
-  visualization_msgs::msg::MarkerArray marker_array;
-
-  marker_array.markers.push_back(createNextTargetMarker(debug_data_.next_target));
-  marker_array.markers.push_back(
-    createTrajectoryCircleMarker(debug_data_.next_target, current_odometry_.pose.pose));
-}
 
 }  // namespace ml_controller

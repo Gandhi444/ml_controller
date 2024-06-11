@@ -56,10 +56,10 @@ using cuda_utils::StreamUniquePtr;
 struct Object
 {
   float steering_tire_angle;
-  float steering_tire_rotation_rate;
-  float acceleration;
-  float speed;
-  float jerk;
+  //float steering_tire_rotation_rate;
+  // float acceleration;
+  // float speed;
+  //float jerk;
 };
 using ObjectArray = std::vector<Object>;
 using ObjectArrays = std::vector<ObjectArray>;
@@ -68,11 +68,11 @@ class MlController
 {
 public:
   MlController(
-    const std::string & model_path, const std::string & precision,
+    const std::string & model_path, const std::string & precision,int trajectory_input_points=10,float max_steer_angle=0.523598776,
     const tensorrt_common::BuildConfig build_config = tensorrt_common::BuildConfig(),
     const double norm_factor = 1.0, [[maybe_unused]] const std::string & cache_dir = "",
     const tensorrt_common::BatchConfig & batch_config = {1, 1, 1},
-    const size_t max_workspace_size = (1 << 30),int inputPoints=2);
+    const size_t max_workspace_size = (1 << 30));
   ~MlController() = default;
 
   rclcpp::Logger logger = rclcpp::get_logger("ml_controller");
@@ -104,6 +104,7 @@ private:
   int batch_size_;
   double norm_factor_;
   int inputPoints_;
+  float max_steer_angle_;
   CudaUniquePtr<float[]> input_d_;
   CudaUniquePtr<float[]> output_d_;
   StreamUniquePtr stream_{makeCudaStream()};
@@ -119,7 +120,6 @@ private:
 
   // functions
   int32_t findNextPointIdx(int32_t search_start_idx);
-  std::pair<bool, geometry_msgs::msg::Point> lerpNextTarget(int32_t next_wp_idx);
 };
 
 }  // namespace ml_controller

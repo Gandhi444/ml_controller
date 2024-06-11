@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(ml_controller)
-
 find_package(autoware_cmake REQUIRED)
 autoware_package()
-
 find_package(Eigen3 REQUIRED)
 find_package(tensorrt_common)
 find_package(cuda_utils)

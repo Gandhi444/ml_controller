@@ -157,7 +157,7 @@ void MlControllerNode::publishCommands(const Object controlSignals)
   autoware_auto_control_msgs::msg::AckermannLateralCommand cmd;
   cmd.stamp = get_clock()->now();
   cmd.steering_tire_angle =controlSignals.steering_tire_angle;
-  cmd.steering_tire_rotation_rate=controlSignals.steering_tire_rotation_rate;
+  cmd.steering_tire_rotation_rate=0;//controlSignals.steering_tire_rotation_rate;
   pub_ctrl_cmd_->publish(cmd);
 }
 

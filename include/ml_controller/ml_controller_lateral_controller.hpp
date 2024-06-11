@@ -76,22 +76,11 @@ struct Param
   double max_steering_angle;  // [rad]
 
   // Algorithm Parameters
-//   double ld_velocity_ratio;
-//   double ld_lateral_error_ratio;
-//   double ld_curvature_ratio;
-//   double min_lookahead_distance;
-//   double max_lookahead_distance;
-//   double reverse_min_lookahead_distance;  // min_lookahead_distance in reverse gear
     double converged_steer_rad_;
-//   double prediction_ds;
-//   double prediction_distance_length;  // Total distance of prediction trajectory
-//   double resampling_ds;
-//   double curvature_calculation_distance;
-//   double long_ld_lateral_error_threshold;
-//   bool enable_path_smoothing;
-//   int path_filter_moving_ave_num;
+    double resampling_ds;
     std::string model_path;
     std::string precision;
+    int32_t trajectory_input_points_;
 };
 
 struct DebugData
@@ -133,7 +122,6 @@ private:
   tf2_ros::TransformListener tf_listener_;
   geometry_msgs::msg::Pose current_pose_;
 
-  void publishDebugMarker() const;
 
   /**
    * @brief compute control command for path follow with a constant control period
@@ -141,7 +129,6 @@ private:
   bool isReady([[maybe_unused]] const InputData & input_data) override;
   LateralOutput run(const InputData & input_data) override;
 
-  AckermannLateralCommand generateCtrlCmdMsg(const double target_curvature);
 
   // Parameter
   Param param_{};
@@ -154,10 +141,8 @@ private:
    * of vehicle.
    */
 
-  TrajectoryPoint calcNextPose(
-    const double ds, TrajectoryPoint & point, AckermannLateralCommand cmd) const;
 
-  boost::optional<Trajectory> generatePredictedTrajectory();
+  //boost::optional<Trajectory> generatePredictedTrajectory();
 
   AckermannLateralCommand generateOutputControlCmd();
 
