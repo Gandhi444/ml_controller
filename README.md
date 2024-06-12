@@ -1,10 +1,10 @@
 # ML Controller
 
-The ML Controller module calculates the steering angle for tracking a desired trajectory using the pure pursuit algorithm. This is used as a lateral controller plugin in the `trajectory_follower_node`.
+The ML Controller module calculates the steering angle for tracking a desired trajectory using the neural network. This is used as a lateral controller plugin in the `trajectory_follower_node`.
 
 ## Inputs
 
-Set the following from the [controller_node](../trajectory_follower_node/README.md)
+Set the following from the [controller_node](https://github.com/autowarefoundation/autoware.universe/blob/main/control/autoware_trajectory_follower_node/README.md)
 
 - `autoware_auto_planning_msgs/Trajectory` : reference trajectory to follow.
 - `nav_msgs/Odometry`: current ego pose and velocity information
@@ -17,7 +17,7 @@ Return LateralOutput which contains the following to the controller node
 - LateralSyncData
   - steer angle convergence
 ## Parameters
-Used via `f1tenth_awsim_data_recorder.param.yaml` file in config directory.
+Used via `ml_controller.param.param.yaml` file in config directory.
 | Name         | Type | Description  |
 | ------------ | ---- | ------------ |
 | converged_steer_rad | double  | Threshold for when steering is considered converged |
