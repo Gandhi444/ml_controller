@@ -54,16 +54,21 @@ namespace ml_controller
 {
 struct Param
 {
-  // Global Parameters
-  double wheel_base;
-
   // Node Parameters
   double ctrl_period;
-
+  // Global Parameters
+  double wheel_base;
+  double max_steering_angle;  // [rad]
   // Algorithm Parameters
-  double lookahead_distance_ratio;
-  double min_lookahead_distance;
-  double reverse_min_lookahead_distance;  // min_lookahead_distance in reverse gear
+    double converged_steer_rad_;
+    double resampling_ds;
+    std::string model_path;
+    std::string precision;
+    int32_t trajectory_input_points_;
+    double lookahead_distance_ratio;
+    double min_lookahead_distance;
+    double reverse_min_lookahead_distance;
+    
 };
 
 struct DebugData

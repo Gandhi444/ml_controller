@@ -30,7 +30,7 @@
 #include "ml_controller/ml_controller.hpp"
 
 #include "ml_controller/util/planning_utils.hpp"
-
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -53,9 +53,10 @@ MlController::MlController(
   closest_thr_dist_=3.0; 
   closest_thr_ang_=(M_PI / 4);
   norm_factor_ = norm_factor;
-  RCLCPP_WARN(logger, model_path.c_str());
+  std::string package_share_directory = ament_index_cpp::get_package_share_directory("ml_controller");
+  std::string model_path_=package_share_directory+"/resources/"+model_path;
   trt_common_ = std::make_unique<tensorrt_common::TrtCommon>(
-      model_path, precision, nullptr, batch_config, max_workspace_size, build_config);
+      model_path_, precision, nullptr, batch_config, max_workspace_size, build_config);
   trt_common_->setup();
   inputPoints_=trajectory_input_points;
   input_Length_=(inputPoints_+1)*4;
@@ -99,7 +100,6 @@ std::pair<bool, Object> MlController::run()
   for(int i=0;i<inputPoints_;i++)
   {
     int32_t wp_idx=(starting_idx+i)%curr_wps_ptr_->size();
-    RCLCPP_WARN(logger,std::to_string(wp_idx).c_str());
     auto next_wp=curr_wps_ptr_->at(wp_idx);
     auto next_pos=next_wp.position;
     auto next_ortient=next_wp.orientation;
@@ -193,7 +193,6 @@ void MlController::preprocess(const std::vector<float> & data)
   {
     sum+=point;
   }
-  RCLCPP_WARN(logger,("sum:"+std::to_string(sum)).c_str());
   CHECK_CUDA_ERROR(cudaMemcpy(
     input_d_.get(), input_h_.data(), input_h_.size() * sizeof(float), cudaMemcpyHostToDevice));
   // No Need for Sync

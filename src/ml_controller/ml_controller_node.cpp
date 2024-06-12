@@ -63,17 +63,19 @@ MlControllerNode::MlControllerNode(const rclcpp::NodeOptions & node_options)
   // param_.wheel_base = vehicle_info.wheel_base_m;
 
   // Node Parameters
-  //param_.ctrl_period = this->declare_parameter<double>("control_period");
+  param_.ctrl_period = this->declare_parameter<double>("control_period");
 
+// Vehicle Parameters
+  const auto vehicle_info = vehicle_info_util::VehicleInfoUtil(*this).getVehicleInfo();
+  param_.wheel_base = vehicle_info.wheel_base_m;
+  param_.max_steering_angle = vehicle_info.max_steer_angle_rad;
   // Algorithm Parameters
-  //param_.lookahead_distance_ratio = this->declare_parameter<double>("lookahead_distance_ratio");
-  //param_.min_lookahead_distance = this->declare_parameter<double>("min_lookahead_distance");
-  //param_.reverse_min_lookahead_distance =
-  //  this->declare_parameter<double>("reverse_min_lookahead_distance");
-  //TensorRT Parameters
-    const auto model_path = declare_parameter("model_path", "test.onnx");
-    const auto precision = declare_parameter("precision", "fp32");
-    ml_controller_ = std::make_unique<MlController>(model_path, precision);
+  param_.converged_steer_rad_ = this->declare_parameter<double>("converged_steer_rad");
+  param_.resampling_ds = this->declare_parameter<double>("resampling_ds");
+  param_.model_path = this->declare_parameter<std::string>("model_path", "test.onnx");
+  param_.precision = this->declare_parameter<std::string>("precision", "fp32");
+  param_.trajectory_input_points_ = this->declare_parameter<int32_t>("trajectory_input_points_", 10);
+  ml_controller_ = std::make_unique<MlController>(param_.model_path, param_.precision,param_.trajectory_input_points_,param_.max_steering_angle);
 
   // Subscribers
   using std::placeholders::_1;
