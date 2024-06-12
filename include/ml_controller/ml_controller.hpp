@@ -69,6 +69,7 @@ class MlController
 public:
   MlController(
     const std::string & model_path, const std::string & precision,int trajectory_input_points=10,float max_steer_angle=0.523598776,
+    float lookahead_distance=0.0,float closest_thr_dist=3.0,float closest_thr_ang=(M_PI / 4),
     const tensorrt_common::BuildConfig build_config = tensorrt_common::BuildConfig(),
     const double norm_factor = 1.0, [[maybe_unused]] const std::string & cache_dir = "",
     const tensorrt_common::BatchConfig & batch_config = {1, 1, 1},

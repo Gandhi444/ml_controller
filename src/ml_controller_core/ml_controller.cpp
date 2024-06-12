@@ -43,15 +43,16 @@ using cuda_utils::makeCudaStream;
 using cuda_utils::StreamUniquePtr;
 
 MlController::MlController(
-    const std::string & model_path, const std::string & precision,int trajectory_input_points,float max_steer_angle,
+    const std::string & model_path, const std::string & precision,const int trajectory_input_points,const float max_steer_angle,
+    const float lookahead_distance,const float closest_thr_dist,const float closest_thr_ang,
     const tensorrt_common::BuildConfig build_config,
     const double norm_factor, [[maybe_unused]] const std::string & cache_dir,
     const tensorrt_common::BatchConfig & batch_config,
     const size_t max_workspace_size)
 {
-  lookahead_distance_=0.0;
-  closest_thr_dist_=3.0; 
-  closest_thr_ang_=(M_PI / 4);
+  lookahead_distance_=lookahead_distance;
+  closest_thr_dist_=closest_thr_dist; 
+  closest_thr_ang_=closest_thr_ang;
   norm_factor_ = norm_factor;
   std::string package_share_directory = ament_index_cpp::get_package_share_directory("ml_controller");
   std::string model_path_=package_share_directory+"/resources/"+model_path;

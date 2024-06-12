@@ -78,6 +78,9 @@ struct Param
   // Algorithm Parameters
     double converged_steer_rad_;
     double resampling_ds;
+    double lookahead_distance;
+    double closest_thr_dist;
+    double closest_thr_ang;
     std::string model_path;
     std::string precision;
     int32_t trajectory_input_points_;

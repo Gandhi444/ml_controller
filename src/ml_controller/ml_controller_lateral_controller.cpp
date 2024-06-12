@@ -56,12 +56,14 @@ MlLateralController::MlLateralController(rclcpp::Node & node)
   const auto vehicle_info = vehicle_info_util::VehicleInfoUtil(node).getVehicleInfo();
   param_.wheel_base = vehicle_info.wheel_base_m;
   param_.max_steering_angle = vehicle_info.max_steer_angle_rad;
-  RCLCPP_WARN(logger_, std::to_string(param_.max_steering_angle).c_str());
   // Algorithm Parameters
   param_.converged_steer_rad_ = node.declare_parameter<double>("converged_steer_rad");
   param_.resampling_ds = node.declare_parameter<double>("resampling_ds");
   param_.model_path = node.declare_parameter<std::string>("model_path", "test.onnx");
   param_.precision = node.declare_parameter<std::string>("precision", "fp32");
+  param_.lookahead_distance = node.declare_parameter<double>("lookahead_distance", 0.0);
+  param_.closest_thr_dist = node.declare_parameter<double>("closest_thr_dist", 3.0);
+  param_.closest_thr_ang = node.declare_parameter<double>("closest_thr_ang", 0.785);
   param_.trajectory_input_points_ = node.declare_parameter<int32_t>("trajectory_input_points_", 10);
   ml_controller_ = std::make_unique<MlController>(param_.model_path, param_.precision,param_.trajectory_input_points_,param_.max_steering_angle);
   // Debug Publishers
