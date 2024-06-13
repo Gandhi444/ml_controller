@@ -75,8 +75,6 @@ MlLateralController::MlLateralController(rclcpp::Node & node)
   // Publish predicted trajectory
   pub_predicted_trajectory_ = node.create_publisher<autoware_auto_planning_msgs::msg::Trajectory>(
     "~/output/predicted_trajectory", 1);
-  RCLCPP_ERROR(logger_, "Ml Controller here");
-
 }
 
 
